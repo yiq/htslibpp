@@ -4,6 +4,8 @@
 #include <htslib/hts.h>
 #include <htslib/vcf.h>
 
+template<class T> class TD;     // A crude instrument to check compiler deduced type
+
 namespace YiCppLib {
     // a simple std::unique_ptr wrapper around traditional c-style pointers that
     // requires calling a function to release the internal data structure. 
@@ -14,7 +16,7 @@ namespace YiCppLib {
     // template system, the type of the destructor and the desctructor needs
     // to be specified individually, making a macro necessary to reduce typing
     template<class T, class D, D * d> struct _uptr_deleter { auto operator()(T* p) { if(p) d(p); } };
-    template<class T, class D, D * d> using _hts_uptr = std::unique_ptr<T, _uptr_deleter<T, D, d>>;
+    template<class T, class D, D * d> using _uptr_with_dtor = std::unique_ptr<T, _uptr_deleter<T, D, d>>;
 
     // A construct that will come in handy is an iterator wrapper around traditional
     // c-style pointer + size dynamic array.
@@ -46,7 +48,7 @@ namespace YiCppLib {
 }
 
 // Now the good stuff
-#define HTS_UPTR(type, dtor) _hts_uptr<type, decltype(dtor), dtor>;
+#define HTS_UPTR(type, dtor) _uptr_with_dtor<type, decltype(dtor), dtor>;
 namespace YiCppLib {
     namespace HTSLibpp {
 
@@ -88,16 +90,18 @@ namespace YiCppLib {
             //   * CONTIG,  e.g. ##contig=<ID=1,length=249250621>
             //   * STRUCT,  e.g. ##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
             //   * GENERAL, e.g. ##fileformat=VCFv4.1
-            enum class HeaderLine { FILTER, INFO, FORMAT, CONTIG, STRUCT, GENERAL };
+            enum class LineType { FILTER, INFO, FORMAT, CONTIG, STRUCT, GENERAL };
 
             // header lines also contain type information, which can be one of
             //   * FLAG, essentially a boolean value with which presence or absence dictates some states to be true or false
             //   * INT,  e.g. DP=54
             //   * REAL, e.g. AF=0.48
             //   * STRING, e.g. culprit=MQ
-            enum class HeaderType { FLAG, INT, REAL, STRING };
+            enum class DataType { FLAG, INT, REAL, STRING };
 
-            enum class VariableLength { FIXED, VARIABLE, A, G, R };
+            // each of the header fields can have a different type of variable
+            // length in each of the vcf records. 
+            enum class VarLength { FIXED, VARIABLE, A, G, R };
 
             // Inside bcf_hdr_t, the records are stored in an array of bcf_hrec_t pointers, **hrec.
             // The size of the array hrec is specified by int nhrec. To iterate over all the records,
@@ -105,9 +109,48 @@ namespace YiCppLib {
             // struct needs to be obtained by dereferencing twice of the type bcf_hrec_t**. 
             static inline auto begin(bcfHeader& hdr) { return hdr->hrec; }
             static inline auto end(bcfHeader& hdr) { return hdr->hrec + hdr->nhrec; }
+            static inline const auto cbegin(bcfHeader& hdr) { return begin(hdr); }
+            static inline const auto cend(bcfHeader& hdr) { return end(hdr); }
+
+            // The headers are also organized into three different categories, which are
+            //   * ID,      e.g. ##FILTER=<ID=LowQual,Description="Low quality">
+            //   * CTG,     e.g. ##contig=<ID=1,length=249250621>
+            //   * SAMPLE,  e.g. #CHROM ... FORMAT Sample1 Sample2
+            enum class DictType { ID, CONTIG, SAMPLE };
+
+            // One can choose to iterate over a particular dictionary
+            static inline auto dictBegin(bcfHeader& hdr, DictType type) {
+                switch(type) {
+                    case DictType::ID:
+                        return hdr->id[BCF_DT_ID];
+                    case DictType::CONTIG:
+                        return hdr->id[BCF_DT_CTG];
+                    case DictType::SAMPLE:
+                        return hdr->id[BCF_DT_SAMPLE];
+                    default:
+                        return static_cast<bcf_idpair_t *>(nullptr);
+                }
+            }
+
+            static inline auto dictEnd(bcfHeader& hdr, DictType type) {
+                switch(type) {
+                    case DictType::ID:
+                        return hdr->id[BCF_DT_ID] + hdr->n[BCF_DT_ID];
+                    case DictType::CONTIG:
+                        return hdr->id[BCF_DT_CTG] + hdr->n[BCF_DT_CTG];
+                    case DictType::SAMPLE:
+                        return hdr->id[BCF_DT_SAMPLE] + hdr->n[BCF_DT_SAMPLE];
+                    default:
+                        return static_cast<bcf_idpair_t *>(nullptr);
+                }
+            }
         };
     }
-    auto inline begin(HTSLibpp::bcfHeader& hdr) { return HTSLibpp::htsHeader<HTSLibpp::bcfHeader>::begin(hdr); }
-    auto inline end(HTSLibpp::bcfHeader& hdr) { return HTSLibpp::htsHeader<HTSLibpp::bcfHeader>::end(hdr); }
+}
 
+namespace std {
+    auto inline begin(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::begin(hdr); }
+    auto inline end(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::end(hdr); }
+    auto inline cbegin(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cbegin(hdr); }
+    auto inline cend(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cend(hdr); }
 }

@@ -1,8 +1,7 @@
-CXX=clang++-3.5
-#CXX=g++-5
-CXXFLAGS=-std=c++14 -stdlib=libc++ -Ihtslib-1.3.1
-#CXXFLAGS=-std=c++14 -Ihtslib-1.3.1
-LDFLAGS=-Lhtslib-1.3.1 -Wl,-rpath,$(shell pwd)/htslib-1.3.1
+HTSLIB_PREFIX ?= /opt/htslib/1.3.1
+
+CXXFLAGS=-std=c++14 -I$(HTSLIB_PREFIX)/include
+LDFLAGS=-L$(HTSLIB_PREFIX)/lib -Wl,-rpath,$(HTSLIB_PREFIX)/lib
 LDADDS=-lhts
 
 all: main
