@@ -1,6 +1,7 @@
 #include "htslibpp.h"
 #include "htslibpp_proxies.h"
 #include <iostream>
+#include <algorithm>
 
 using namespace YiCppLib::HTSLibpp;
 
@@ -85,5 +86,4 @@ int main(int argc, char* argv[]) {
     std::cout<<hasAO<<std::endl;
 
     return 0;
-
 }

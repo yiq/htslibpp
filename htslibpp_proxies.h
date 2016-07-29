@@ -28,7 +28,7 @@ namespace YiCppLib {
         template<> struct HTSProxy<const bcf_idpair_t &> {
             const bcf_idpair_t& m_actual;
 
-            HTSProxy<bcf_idpair_t>(const bcf_idpair_t& actual) : m_actual(actual) {}
+            HTSProxy(const bcf_idpair_t& actual) : m_actual(actual) {}
             inline auto key() const { return m_actual.key; }
 
             inline auto hasValueForLineType(htsHeader<bcfHeader>::LineType type) const {
