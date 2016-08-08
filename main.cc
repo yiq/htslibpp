@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, dict),
             htsHeader<bcfHeader>::dictEnd(header, dict),
             [](const auto& p) {
-                auto proxy = HTSProxyIDPairContig{p};
+                auto proxy {HTSProxyIDPairContig(p)};
                 std::cout<<proxy.key()<<":";
                 std::cout<<proxy.contigSize()<<". ";
                 std::cout<<"isFilter<"<<proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FILTER)<<">, ";
@@ -65,25 +65,22 @@ int main(int argc, char* argv[]) {
             });
 
     // do I have AF fields in each sample, or in another word, part of 'FORMAT' line
-    bool hasAF = std::any_of(
+    std::cout<<std::any_of(
             htsHeader<bcfHeader>::dictBegin(header, htsHeader<bcfHeader>::DictType::ID),
             htsHeader<bcfHeader>::dictEnd(header, htsHeader<bcfHeader>::DictType::ID),
             [](const auto& p) {
-                auto proxy = htsProxy( p );
+                auto proxy {htsProxy( p )};
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT) && (strcmp(proxy.key(), "AF") == 0);
             });
 
-
-    std::cout<<hasAF<<std::endl;
-
-    bool hasAO = std::any_of(
+    // do I have the AO field?
+    std::cout<<std::any_of(
             htsHeader<bcfHeader>::dictBegin(header, htsHeader<bcfHeader>::DictType::ID),
             htsHeader<bcfHeader>::dictEnd(header, htsHeader<bcfHeader>::DictType::ID),
             [](const auto& p) {
-                auto proxy = htsProxy( p );
+                auto proxy {htsProxy( p )};
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT) && (strcmp(proxy.key(), "AO") == 0);
             });
-    std::cout<<hasAO<<std::endl;
 
     return 0;
 }
