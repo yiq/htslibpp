@@ -82,5 +82,18 @@ int main(int argc, char* argv[]) {
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT) && (strcmp(proxy.key(), "AO") == 0);
             });
 
+    //auto record = htsReader<bcfRecord>::read(fileHandle, header);
+    //while(record.get() != nullptr) {
+    //    std::cout<<record->rid<<"\t"<<record->pos<<std::endl;
+    //    htsReader<bcfRecord>::read(fileHandle, header, record);
+    //}
+
+    std::for_each(
+            htsReader<bcfRecord>::begin(fileHandle, header),
+            htsReader<bcfRecord>::end(fileHandle, header), 
+            [](const auto& p) {
+                std::cout<<p->rid<<"\t"<<p->pos<<std::endl;
+            });
+        
     return 0;
 }

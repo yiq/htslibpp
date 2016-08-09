@@ -20,7 +20,7 @@ namespace YiCppLib {
 
     // A construct that will come in handy is an iterator wrapper around traditional
     // c-style pointer + size dynamic array.
-    template<class T, class SIZE_T> struct _ptr_array_iterator : std::iterator<std::forward_iterator_tag, T> {
+    template<class T, class SIZE_T> struct _ptr_array_iterator : std::iterator<std::bidirectional_iterator_tag, T> {
         protected:
             T * m_head;
             const SIZE_T m_size;
@@ -32,6 +32,9 @@ namespace YiCppLib {
 
             _ptr_array_iterator& operator++()    { ++m_curPos; return *this; }
             _ptr_array_iterator  operator++(int) { auto retVal = *this; ++(*this); return retVal; }
+
+            _ptr_array_iterator& operator--()    { if(m_curPos > 0) --m_curPos; return *this; }
+            _ptr_array_iterator  operator--(int) { auto retVal = *this; --(*this); return retVal; }
            
             bool operator==(const _ptr_array_iterator& rhs) { return m_curPos == rhs.m_curPos; }
             bool operator!=(const _ptr_array_iterator& rhs) { return !(*this == rhs); }
@@ -44,6 +47,10 @@ namespace YiCppLib {
         // undefined generic htsHeader struct placeholder. Specific header types
         // will implement template specifications.
         template<class T> struct htsHeader;
+
+        // undefined generic htsReader struct placeholdder. Specific reader types
+        // will implement template specifications.
+        template<class T> struct htsReader;
     }
 }
 
@@ -151,6 +158,44 @@ namespace YiCppLib {
         // purpose of performance, this struct is now allocated everytime
         // a record is fetched, but rather an already existing record,
         // being freshly allocated or not, is provided to the read function.
+        using bcfRecord = HTS_UPTR(::bcf1_t, bcf_destroy);
+
+        template<> struct htsReader<bcfRecord> {
+            // Read the next bcf record form the file.
+            static inline void read(htsFile& fp, const bcfHeader& hdr, bcfRecord& rec) {
+                auto retVal = bcf_read(fp.get(), hdr.get(), rec.get());
+                if(retVal == -1) rec.reset(nullptr);
+            }
+
+            // If one do not already possess a bcf1_t object, but simply want
+            // the next bcf record, here is the approprate function
+            static inline auto read(htsFile& fp, const bcfHeader& hdr) {
+                bcfRecord rec{bcf_init()};
+                read(fp, hdr, rec);
+                return rec;
+            }
+
+            struct iterator : public std::iterator<std::input_iterator_tag, bcfRecord> {
+                protected:
+                    htsFile& fp;
+                    const bcfHeader& hdr;
+                    bcfRecord rec;
+
+                public:
+                    iterator(htsFile& fp, const bcfHeader& hdr) : fp(fp), hdr(hdr), rec(bcf_init()) {}
+                    iterator(htsFile& fp, const bcfHeader& hdr, bcfRecord rec): fp(fp), hdr(hdr), rec(std::move(rec)) {}
+                    virtual bcfRecord& operator*() { return rec; }
+
+                    iterator& operator++()               { read(fp, hdr, rec); return *this; }
+                    void operator++(int)                 { ++(*this); }
+
+                    bool operator==(const iterator& rhs) { return rec.get() == nullptr && rhs.rec.get() == nullptr ; }
+                    bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+            };
+
+            static iterator begin(htsFile& fp, const bcfHeader& hdr) { return iterator{fp, hdr}; }
+            static iterator end(htsFile& fp, const bcfHeader& hdr)   { return iterator{fp, hdr, std::move(bcfRecord{nullptr})}; }
+        };
     }
 }
 
@@ -159,4 +204,7 @@ namespace std {
     auto inline end(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::end(hdr); }
     auto inline cbegin(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cbegin(hdr); }
     auto inline cend(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cend(hdr); }
+
+    auto inline begin(YiCppLib::HTSLibpp::htsFile& fp, const YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsReader<YiCppLib::HTSLibpp::bcfRecord>::begin(fp, hdr);}
+    auto inline end(YiCppLib::HTSLibpp::htsFile& fp, const YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsReader<YiCppLib::HTSLibpp::bcfRecord>::end(fp, hdr);}
 }
