@@ -9,9 +9,12 @@ LDFLAGS=-L$(HTSLIB_PREFIX)/lib -Wl,-rpath,$(HTSLIB_PREFIX)/lib
 LDADDS=-lhts
 
 
-all: main dp_stats
+all: main dp_stats random
 
 main: main.cc htslibpp.h
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(LDADDS)
+
+random: random.cc htslibpp.h
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(LDADDS)
 
 dp_stats: dp_stats.cc htslibpp.h
@@ -19,4 +22,4 @@ dp_stats: dp_stats.cc htslibpp.h
 
 
 clean:
-	rm -f *.o main dp_stats
+	rm -f *.o main dp_stats random
