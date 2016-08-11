@@ -7,12 +7,7 @@ using namespace YiCppLib::HTSLibpp;
 
 int main(int argc, char* argv[]) {
 
-    if(argc < 2) {
-        std::cout<<"nice try. use a file name"<<std::endl;
-        return 0;
-    }
-
-    auto fileHandle = htsOpen(argv[1], "r");
+    auto fileHandle = htsOpen(argc < 2 ? "-" : argv[1], "r");
     if(not fileHandle) {
         std::cerr<<"unable to open file"<<std::endl;
         return 1;
@@ -24,7 +19,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, htsHeader<bcfHeader>::DictType::ID),
             htsHeader<bcfHeader>::dictEnd(header, htsHeader<bcfHeader>::DictType::ID),
             [](const auto& p) {
-                auto proxy {htsProxy( p )};
+                auto proxy = htsProxy(p);
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::INFO) && (strcmp(proxy.key(), "DP") == 0);
             });
     std::cout<<hasDP<<std::endl;

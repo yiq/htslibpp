@@ -6,13 +6,9 @@
 using namespace YiCppLib::HTSLibpp;
 
 int main(int argc, char* argv[]) {
+    
+    auto fileHandle = htsOpen(argc < 2 ? "-" : argv[1], "r");
 
-    if(argc < 2) {
-        std::cout<<"nice try. use a file name"<<std::endl;
-        return 0;
-    }
-
-    auto fileHandle = htsOpen(argv[1], "r");
     if(fileHandle) {
         std::cout<<"hts file open of the format:";
         const auto hts_format = &fileHandle->format;
@@ -35,7 +31,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, dict),
             htsHeader<bcfHeader>::dictEnd(header, dict),
             [dict=dict](const auto& p) {
-                auto proxy {htsProxy(p)};
+                auto proxy = htsProxy(p);
                 std::cout<<proxy.key()<<": ";
                 std::cout<<"isFilter<"<<proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FILTER)<<">, ";
                 std::cout<<"isInfo<"<<proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::INFO)<<">, ";
@@ -52,7 +48,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, dict),
             htsHeader<bcfHeader>::dictEnd(header, dict),
             [](const auto& p) {
-                auto proxy {HTSProxyIDPairContig(p)};
+                auto proxy = HTSProxyIDPairContig(p);
                 std::cout<<proxy.key()<<":";
                 std::cout<<proxy.contigSize()<<". ";
                 std::cout<<"isFilter<"<<proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FILTER)<<">, ";
@@ -69,7 +65,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, htsHeader<bcfHeader>::DictType::ID),
             htsHeader<bcfHeader>::dictEnd(header, htsHeader<bcfHeader>::DictType::ID),
             [](const auto& p) {
-                auto proxy {htsProxy( p )};
+                auto proxy = htsProxy( p );
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT) && (strcmp(proxy.key(), "AF") == 0);
             });
 
@@ -78,7 +74,7 @@ int main(int argc, char* argv[]) {
             htsHeader<bcfHeader>::dictBegin(header, htsHeader<bcfHeader>::DictType::ID),
             htsHeader<bcfHeader>::dictEnd(header, htsHeader<bcfHeader>::DictType::ID),
             [](const auto& p) {
-                auto proxy {htsProxy( p )};
+                auto proxy = htsProxy( p );
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT) && (strcmp(proxy.key(), "AO") == 0);
             });
 
