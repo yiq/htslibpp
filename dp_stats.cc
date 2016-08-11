@@ -30,14 +30,16 @@ int main(int argc, char* argv[]) {
     }
 
     int32_t *dp = (int32_t *)calloc(1, sizeof(int32_t));
-    std::for_each(
+    int dp_size = 0;
+
+    std::transform(
             htsReader<bcfRecord>::begin(fileHandle, header),
             htsReader<bcfRecord>::end(fileHandle, header), 
-            [&header, &dp](const auto& p) {
+            std::ostream_iterator<int32_t>(std::cout, "\n"),
+            [&header, &dp, &dp_size](const auto &p) {
                 bcf_unpack(p.get(), BCF_UN_INFO);
-                int dp_size = 0;
                 bcf_get_info_int32(header.get(), p.get(), "DP", &dp, &dp_size);
-                std::cout<<dp[0]<<std::endl;
+                return *dp;
             });
     free(dp);
 
