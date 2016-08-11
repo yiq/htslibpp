@@ -24,7 +24,6 @@ int main(int argc, char* argv[]) {
                 auto proxy = htsProxy(p);
                 return proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::INFO) && (strcmp(proxy.key(), "DP") == 0);
             });
-    std::cout<<hasDP<<std::endl;
 
     if(not hasDP) {
         std::cerr<<"The vcf file has no DP field in its INFO dictionary"<<std::endl;
@@ -49,15 +48,15 @@ int main(int argc, char* argv[]) {
 
     std::sort(vecDP.begin(), vecDP.end(), std::less<int32_t>());
 
-    std::copy(vecDP.cbegin(), vecDP.cend(), std::ostream_iterator<int32_t>(std::cout, "\n"));
+    double quantiles[] {
+        gsl_stats_int_quantile_from_sorted_data(&vecDP[0], 1, vecDP.size(), 0.25),
+        gsl_stats_int_quantile_from_sorted_data(&vecDP[0], 1, vecDP.size(), 0.5),
+        gsl_stats_int_quantile_from_sorted_data(&vecDP[0], 1, vecDP.size(), 0.75)
+    };
 
-    std::cout<<"median = "<<gsl_stats_int_median_from_sorted_data(&vecDP[0], 1, vecDP.size())<<std::endl;
-    std::cout<<"IQR = "<<gsl_stats_int_quantile_from_sorted_data(&vecDP[0], 1, vecDP.size(), 0.75) - gsl_stats_int_quantile_from_sorted_data(&vecDP[0], 1, vecDP.size(), 0.25)<<std::endl;
+    std::cout<<"median = "<<quantiles[1]<<std::endl;
+    std::cout<<"IQR = "<<quantiles[2]-quantiles[1]<<std::endl;
 
     return 0;
 }
-
-
-
-
 

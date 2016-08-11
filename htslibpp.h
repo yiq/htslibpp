@@ -200,11 +200,13 @@ namespace YiCppLib {
 }
 
 namespace std {
+    // iterator helper functions for bcfHeader
     auto inline begin(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::begin(hdr); }
     auto inline end(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::end(hdr); }
     auto inline cbegin(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cbegin(hdr); }
     auto inline cend(YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsHeader<YiCppLib::HTSLibpp::bcfHeader>::cend(hdr); }
 
+    // iterator helper functions for htsFile
     auto inline begin(YiCppLib::HTSLibpp::htsFile& fp, const YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsReader<YiCppLib::HTSLibpp::bcfRecord>::begin(fp, hdr);}
     auto inline end(YiCppLib::HTSLibpp::htsFile& fp, const YiCppLib::HTSLibpp::bcfHeader& hdr) { return YiCppLib::HTSLibpp::htsReader<YiCppLib::HTSLibpp::bcfRecord>::end(fp, hdr);}
 }
