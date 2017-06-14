@@ -9,14 +9,14 @@ template<class T> class TD;     // A crude instrument to check compiler deduced 
 namespace YiCppLib {
     // a simple std::unique_ptr wrapper around traditional c-style pointers that
     // requires calling a function to release the internal data structure. 
-    template<class T, class D> auto make_cptr_wrapper(T* p, D* d) { return std::unique_ptr<T, D>(p, d); }
+    template<class PtrT, class DtorT> auto make_cptr_wrapper(PtrT* p, DtorT* d) { return std::unique_ptr<PtrT, DtorT>(p, d); }
 
     // a more complicated std::unique_ptr wrapper that allows destructor to be
     // defined at the time type alias is defined. Due to the syntax of C++
     // template system, the type of the destructor and the desctructor needs
     // to be specified individually, making a macro necessary to reduce typing
-    template<class T, class D, D * d> struct _uptr_deleter { auto operator()(T* p) { if(p) d(p); } };
-    template<class T, class D, D * d> using _uptr_with_dtor = std::unique_ptr<T, _uptr_deleter<T, D, d>>;
+    template<class PtrT, class DtorT, DtorT * d> struct _uptr_deleter { auto operator()(PtrT* p) { if(p) d(p); } };
+    template<class PtrT, class DtorT, DtorT * d> using _uptr_with_dtor = std::unique_ptr<PtrT, _uptr_deleter<PtrT, DtorT, d>>;
 
     // A construct that will come in handy is an iterator wrapper around traditional
     // c-style pointer + size dynamic array.
