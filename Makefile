@@ -1,5 +1,5 @@
-HTSLIB_PREFIX ?= /opt/htslib/1.3.1
-GSL_CONFIG ?= gsl-config
+HTSLIB_PREFIX ?= /opt/lib/htslib/1.4.1
+GSL_CONFIG ?= /opt/lib/gsl/2.3/bin/gsl-config
 
 GSL_CFLAGS = $(shell $(GSL_CONFIG) --cflags)
 GSL_LIBS   = $(shell $(GSL_CONFIG) --libs-without-cblas)
