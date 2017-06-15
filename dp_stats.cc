@@ -1,5 +1,5 @@
 #include "htslibpp.h"
-#include "htslibpp_proxies.h"
+#include "htslibpp_variant.h"
 #include <iostream>
 #include <algorithm>
 #include <vector>
