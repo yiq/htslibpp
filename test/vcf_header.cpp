@@ -8,42 +8,76 @@ using namespace YiCppLib::HTSLibpp;
 
 class VcfHeader: public testing::Test {
     public:
-        YiCppLib::HTSLibpp::htsFile htsFileHandler = htsOpen("datasets/brca2.exac.vcf", "r");
+        YiCppLib::HTSLibpp::htsFile htsFileHandler = htsOpen("datasets/brca2.platnium-trio.vcf", "r");
 };
+
+
+// Tests for READ
 
 TEST_F(VcfHeader, CanCreateBcfHeaderObject) {
     auto header = htsHeader<bcfHeader>::read(htsFileHandler);
     ASSERT_NE(header.get(), nullptr);
 }
 
-/*
-TEST_F(BamHeader, CanIterateOverRecordsSequencially) {
-    auto header = htsHeader<bamHeader>::read(htsFileHandler);
-    size_t line_ct = 0;
-    size_t hd_ct = 0;
-    size_t sq_ct = 0;
-    size_t pg_ct = 0;
-    size_t rg_ct = 0;
-    size_t co_ct = 0;
-    std::for_each(
-        htsHeader<bamHeader>::cbegin_l(header),
-        htsHeader<bamHeader>::cend_l(header),
-        [&](const auto& p) {
-            line_ct++;
+TEST_F(VcfHeader, CanIterateOverRecordsSequencially) {
+    auto header = htsHeader<bcfHeader>::read(htsFileHandler);
+    int32_t header_line_ct = 0;
+    std::for_each(std::cbegin(header), std::cend(header), [&header_line_ct](const auto& p) { header_line_ct++; });
+    ASSERT_EQ(header_line_ct, 59);
+}
 
-            auto tag = p.substr(0, 3);
+TEST_F(VcfHeader, CanIterateOverIDDictionary) {
+    auto header = htsHeader<bcfHeader>::read(htsFileHandler);
+    auto dict = htsHeader<bcfHeader>::DictType::ID;
 
-            if(tag == "@HD")        hd_ct++;
-            else if(tag == "@SQ")   sq_ct++;
-            else if(tag == "@PG")   pg_ct++;
-            else if(tag == "@RG")   rg_ct++;
-            else if(tag == "@CO")   co_ct++;
-        }
-    );
+    int32_t header_filter_ct = 0;
+    int32_t header_info_ct = 0;
+    int32_t header_format_ct = 0;
 
-    ASSERT_EQ(hd_ct, 1);
-    ASSERT_EQ(sq_ct, 86);
-    ASSERT_EQ(pg_ct, 28);
-    ASSERT_EQ(rg_ct, 1);
-    ASSERT_EQ(line_ct, 116);
-}*/
+    std::for_each(htsHeader<bcfHeader>::dictBegin(header, dict), htsHeader<bcfHeader>::dictEnd(header, dict), [&](const auto& p){
+
+            auto proxy = htsProxy(p);
+
+            if(proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FILTER)) header_filter_ct++;
+            if(proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::INFO)) header_info_ct++;
+            if(proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::FORMAT)) header_format_ct++;
+
+        });
+
+    ASSERT_EQ(header_filter_ct, 1);
+    ASSERT_EQ(header_info_ct, 43);
+    ASSERT_EQ(header_format_ct, 8);
+}
+
+TEST_F(VcfHeader, CanIterateOverContigDictionary) {
+    auto header = htsHeader<bcfHeader>::read(htsFileHandler);
+    auto dict = htsHeader<bcfHeader>::DictType::CONTIG;
+
+    int32_t contig_ct = 0;
+
+    std::for_each(htsHeader<bcfHeader>::dictBegin(header, dict), htsHeader<bcfHeader>::dictEnd(header, dict), [&](const auto& p) {
+            auto proxy = HTSProxyIDPairContig(p);
+            if(proxy.hasValueForLineType(htsHeader<bcfHeader>::LineType::CONTIG)) contig_ct++;
+        });
+
+    ASSERT_EQ(contig_ct, 1);
+}
+
+TEST_F(VcfHeader, CanIterateOverSampleDictionary) {
+    auto header = htsHeader<bcfHeader>::read(htsFileHandler);
+    auto dict = htsHeader<bcfHeader>::DictType::SAMPLE;
+
+    int32_t sample_ct = 0;
+
+    std::for_each(htsHeader<bcfHeader>::dictBegin(header, dict), htsHeader<bcfHeader>::dictEnd(header, dict), [&](const auto& p) {
+            auto proxy = htsProxy(p);
+            ASSERT_EQ(strncmp(proxy.key(), "NA128", 5), 0);  // The sample names should all start with NA128
+            sample_ct++;
+        });
+
+    ASSERT_EQ(sample_ct, 3);
+}
+
+// Tests for MODIFY
+// Tests for CREATE
+// Tests for WRITE
