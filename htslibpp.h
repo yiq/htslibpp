@@ -45,6 +45,7 @@ namespace YiCppLib {
             static _ptr_array_iterator begin(T * head, SIZE_T& size) { return _ptr_array_iterator{head, size}; }
             static _ptr_array_iterator end(T * head, SIZE_T& size)   { return _ptr_array_iterator{head, size, size}; }
     };
+
     namespace HTSLibpp {
         // undefined generic htsHeader struct placeholder. Specific header types
         // will implement template specifications.
@@ -54,7 +55,6 @@ namespace YiCppLib {
         // will implement template specifications.
         template<class T> struct htsReader;
 
-        
         
         // proxy base templates
 
@@ -78,7 +78,7 @@ namespace YiCppLib {
 
         // First order of business when dealing with hts files is to open it.
         // To follow the principle of Resource Acquisition Is Initialization,
-        // or RAII for short, we define an type alias HTSLibpp::htsFile to
+        // or RAII for short, we define a type alias HTSLibpp::htsFile to
         // be an unique pointer to the underlying struct htsFile *, which
         // will be closed automatically upon going out-of-scope by calling
         // hts_close

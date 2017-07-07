@@ -17,7 +17,6 @@ namespace YiCppLib {
         // struct by calling bcf_hdr_read, but you need to manually free
         // the struct with bcf_hdr_destroy. Using a smart pointer wrapper,
         // we can use RAII to manage the life cycle
-        //using bcfHeader = HTS_UPTR(::bcf_hdr_t, void, bcf_hdr_destroy);
         using bcfHeader = HTS_UPTR(::bcf_hdr_t, bcf_hdr_destroy);
 
         // bcfHeader template generalization of HTSLibpp::htsHeader<T>
