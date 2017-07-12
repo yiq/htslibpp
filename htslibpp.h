@@ -83,10 +83,46 @@ namespace YiCppLib {
         // will be closed automatically upon going out-of-scope by calling
         // hts_close
         using htsFile = HTS_UPTR(::htsFile, hts_close);
+        using htsIndex = HTS_UPTR(::hts_idx_t, hts_idx_destroy);
+        using htsIterator = HTS_UPTR(::hts_itr_t, hts_itr_destroy);
 
         inline auto htsOpen(const std::string& filename, const std::string& mode) {
             return htsFile{ hts_open(filename.c_str(), mode.c_str()) };
         }
+
+        inline auto htsIndexOpen(const std::string& filename, const std::string& indexFilename) {
+            return htsIndex(hts_idx_load2(filename.c_str(), indexFilename.c_str()));
+        }
+
+        // HTS Record iterators
+        
+        /* hts file records are accessed in a somewhat similar
+         * way across different file types: you can a read function with
+         * a pointer to the record struct over and over until the end.
+         *
+         * This function can be nicely wrapped up in an input iterator so
+         * they work with the generic algorithms
+         */
+        template<class RecT>
+        struct iterator : public std::iterator<std::input_iterator_tag, RecT> {
+            protected:
+                htsFile& fp;
+                RecT rec;
+
+                virtual void advance() = 0;
+
+            public:
+                iterator(htsFile& fp): fp(fp), iterator(fp, nullptr) {}
+                iterator(htsFile& fp, RecT rec): fp(fp), rec(std::move(rec)) {}
+                RecT& operator*() { return rec; }
+
+                virtual iterator& operator++()    { if(rec.get() != nullptr) advance(); return *this; }
+                void operator++(int)      { ++(*this); }
+
+
+                bool operator==(const iterator& rhs) { return rec.get() == nullptr && rhs.rec.get() == nullptr; }
+                bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+        };
     }
 }
 

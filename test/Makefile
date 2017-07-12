@@ -10,6 +10,7 @@ LIBS=$(GOOGLETEST_DIR)/lib/libgmock.a
 SOURCES = runner.cpp \
 	  htsfile.cpp \
 	  bam_header.cpp \
+	  bam_record.cpp \
 	  vcf_header.cpp
 
 all: check

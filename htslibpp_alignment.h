@@ -6,6 +6,7 @@
 #include "htslibpp.h"
 #include <htslib/sam.h>
 #include <string.h>
+#include <utility>
 #ifndef YICPPLIB_HTSLIBPP_ALIGNMENT
 #define YICPPLIB_HTSLIBPP_ALIGNMENT
 
@@ -76,39 +77,73 @@ namespace YiCppLib {
 
         template<> struct htsReader<bamRecord> {
             // read the next bam record from the file.
-            static inline void read(htsFile& fp, bamRecord& rec) {
-                auto retVal = bam_read1(fp->fp.bgzf, rec.get());
-                if(retVal == -1) rec.reset(nullptr);
+            static inline void read(htsFile& fp, const bamHeader& hdr, bamRecord& rec) {
+                auto retVal = sam_read1(fp.get(), hdr.get(), rec.get());
+                if(retVal <= 0) rec.reset(nullptr);
             }
 
             // if one does not already process a bamRecord object, but simply wants
             // the next bam record, here is the approprate function
-            static inline auto read(htsFile& fp) {
+            static inline auto read(htsFile& fp, const bamHeader& hdr) {
                 bamRecord rec{bam_init1()};
-                read(fp, rec);
+                read(fp, hdr, rec);
                 return rec;
             }
 
+            // read the next bam record from hts_iterator
+            static inline void read(htsFile& fp, htsIterator& iter, bamRecord& rec) {
+                auto retVal = sam_itr_next(fp.get(), iter.get(), rec.get());
+                if(retVal <= 0) rec.reset(nullptr);
+            }
+
             // sequencial iterator
-            struct iterator : public std::iterator<std::input_iterator_tag, bamRecord> {
+            using bam_iterator_base = YiCppLib::HTSLibpp::iterator<bamRecord>;
+
+            struct iterator : public bam_iterator_base {
                 protected:
-                    htsFile& fp;
-                    bamRecord rec;
+                    const bamHeader& hdr;
+                    virtual void advance() { if(rec.get() != nullptr) read(fp, hdr, rec); }
 
                 public:
-                    iterator(htsFile& fp): fp(fp), rec(bam_init1()) {}
-                    iterator(htsFile& fp, bamRecord rec): fp(fp), rec(std::move(rec)) {}
-                    virtual bamRecord& operator*() { return rec; }
-
-                    iterator& operator++()               { read(fp, rec); return *this; }
-                    void operator++(int)                 { ++(*this); }
-
-                    bool operator==(const iterator& rhs) { return rec.get() == nullptr && rhs.rec.get() == nullptr; }
-                    bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+                    iterator(htsFile& fp, const bamHeader& hdr) : iterator(fp, hdr, bamRecord{bam_init1()}) { }
+                    iterator(htsFile& fp, const bamHeader& hdr, bamRecord rec) : bam_iterator_base(fp, std::move(rec)), hdr(hdr) { advance(); }
             };
 
-            static iterator begin(htsFile& fp) { return iterator{fp}; }
-            static iterator end(htsFile& fp) { return iterator{fp, std::move(bamRecord{nullptr})}; }
+            // range iterator
+            struct iterator_r : public bam_iterator_base {
+                protected:
+                    htsIterator sam_iter;
+                    virtual void advance() { if(rec.get() != nullptr) read(fp, sam_iter, rec); }
+
+                public:
+                    iterator_r(htsFile& fp, htsIterator iter): iterator_r(fp, std::move(iter), bamRecord{bam_init1()}) { }
+                    iterator_r(htsFile& fp, htsIterator iter, bamRecord rec): bam_iterator_base(fp, std::move(rec)), sam_iter(std::move(iter)) { advance(); }
+            };
+
+            static auto begin(htsFile& fp, const bamHeader& hdr) { return iterator{fp, hdr}; }
+            static auto end(htsFile& fp, const bamHeader& hdr) { return iterator{fp, hdr, nullptr}; }
+
+            static auto begin(htsFile& fp, const bamHeader& hdr, htsIndex& idx, std::string range_s) { 
+                htsIterator sam_iter{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())};
+                return iterator_r(fp, std::move(sam_iter));
+            }
+            static auto end(htsFile& fp, const bamHeader& hdr, htsIndex& idx, std::string range_s) { 
+                htsIterator sam_iter{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())};
+                return iterator_r(fp, std::move(sam_iter), nullptr);
+            }
+
+            // --- RANGE EXPRESSIONS --- //
+            struct bamRange {
+                protected:
+                    htsFile& fp;
+                    const bamHeader& hdr;
+                public:
+                    bamRange(htsFile& fp, const bamHeader& hdr): fp(fp), hdr(hdr) {}
+                    auto begin() { return htsReader<bamRecord>::begin(fp, hdr); }
+                    auto end()   { return htsReader<bamRecord>::end(fp, hdr); }
+            };
+
+            static auto range(htsFile& fp, const bamHeader& hdr) { return bamRange{fp, hdr}; }
         };
     }
 }
@@ -118,24 +153,33 @@ namespace YiCppLib {
     namespace HTSLibpp {
         // the proxy around bamRecord, which describes an alignment.
         template<> struct HTSProxy<const bamRecord &> {
-            const bamRecord& m_actual;
+            private:
+                const bamRecord& m_actual;
+                inline auto data(uint32_t start) const { return std::string((const char *)(m_actual->data) + start); }
 
-            HTSProxy(const bamRecord& actual): m_actual(actual) {}
+            public:
 
-            inline auto chrID() const     { return m_actual->core.tid;  }
-            inline auto pos() const       { return m_actual->core.pos;  }
-            inline auto qual() const      { return m_actual->core.qual; }
-            inline auto mateChrID() const { return m_actual->core.mtid; }
-            inline auto matePos() const   { return m_actual->core.mpos; }
+                HTSProxy(const bamRecord& actual): m_actual(actual) {}
 
-            // more expensive extractions
-            //inline auto queryName() const { return std::string((char*)m_actual->data); } 
-            //inline auto sequence() const { return std::string((char*)(m_actual->data + (m_actual->core.n_cigar)<<2 + m_actual->core.l_qname) ); }
-            //inline auto baseQualities() const { return std::string((char*)(m_actual->data + (m_actual->core.n_cigar)<<2 + m_actual->core.l_qname + (m_actual->core.l_qseq + 1) >> 1)); } 
-            // TO-BE-IMPLEMENTED
-            // inline auto auxiliary() const;
-            // inline auto auxiliary_length() const;
-            // inline auto get_base(uint32_t i) const;
+                inline auto chrID() const     { return m_actual->core.tid;  }
+                inline auto pos() const       { return m_actual->core.pos;  }
+                inline auto qual() const      { return m_actual->core.qual; }
+                inline auto mateChrID() const { return m_actual->core.mtid; }
+                inline auto matePos() const   { return m_actual->core.mpos; }
+
+                // more expensive extractions
+                inline auto queryName() const   { return data(0); }
+                inline auto cigar() const       { return data(m_actual->core.l_qname); }
+                //inline auto queryName() const { return data(0, m_actual->core.l_qname); } 
+                //inline auto cigar() const     { return data(m_actual->core.l_qname, m_actual->core.n_cigar<<2); }
+                //inline auto sequence() const  P return data(m_actual->core.l_qname + m_actual->core.n_cigar<<2, )
+                //inline auto sequence() const { return std::string((char*)(m_actual->data + (m_actual->core.n_cigar)<<2 + m_actual->core.l_qname) ); }
+                //inline auto baseQualities() const { return std::string((char*)(m_actual->data + (m_actual->core.n_cigar)<<2 + m_actual->core.l_qname + (m_actual->core.l_qseq + 1) >> 1)); } 
+                // TO-BE-IMPLEMENTED
+                // inline auto auxiliary() const;
+                // inline auto auxiliary_length() const;
+                // inline auto get_base(uint32_t i) const;
+            
         };
     }
 }

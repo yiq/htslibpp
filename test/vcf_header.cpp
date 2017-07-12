@@ -79,5 +79,18 @@ TEST_F(VcfHeader, CanIterateOverSampleDictionary) {
 }
 
 // Tests for MODIFY
+
+/* operations right now supported in HTSLib:
+ * merge(dst, src): ret_val <- dst + src
+ * add_sample(hdr, sample): hdr <- hdr + sample
+ * set(hdr, fname): hdr <- hdr_read(fname)
+ * remove(hdr, type, key): hdr <- hdr - (key of type id)
+ *
+ * HREC funcs:
+ * hrec_add_key(hrec, str, len): add key of 'str' 
+ */
+
+
+
 // Tests for CREATE
 // Tests for WRITE
