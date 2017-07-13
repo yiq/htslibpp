@@ -107,6 +107,7 @@ namespace YiCppLib {
                 public:
                     iterator(htsFile& fp, const bamHeader& hdr) : iterator(fp, hdr, bamRecord{bam_init1()}) { }
                     iterator(htsFile& fp, const bamHeader& hdr, bamRecord rec) : bam_iterator_base(fp, std::move(rec)), hdr(hdr) { advance(); }
+                    iterator(const iterator& other): bam_iterator_base(other.fp, nullptr), hdr(other.hdr) { if(other.rec.get() != nullptr) rec.reset(bam_dup1(other.rec.get())); }
             };
 
             // range iterator
@@ -133,17 +134,32 @@ namespace YiCppLib {
             }
 
             // --- RANGE EXPRESSIONS --- //
-            struct bamRange {
+            struct bam_range_s {
                 protected:
                     htsFile& fp;
                     const bamHeader& hdr;
                 public:
-                    bamRange(htsFile& fp, const bamHeader& hdr): fp(fp), hdr(hdr) {}
+                    bam_range_s(htsFile& fp, const bamHeader& hdr): fp(fp), hdr(hdr) {}
                     auto begin() { return htsReader<bamRecord>::begin(fp, hdr); }
                     auto end()   { return htsReader<bamRecord>::end(fp, hdr); }
             };
 
-            static auto range(htsFile& fp, const bamHeader& hdr) { return bamRange{fp, hdr}; }
+            struct bam_range_r {
+                protected:
+                    htsFile& fp;
+                    const bamHeader& hdr;
+                    htsIndex& idx;
+                    const std::string& region;
+
+                public:
+                    bam_range_r(htsFile& fp, const bamHeader& hdr, htsIndex& idx, const std::string& region): fp(fp), hdr(hdr), idx(idx), region(region) {}
+                    auto begin() { return htsReader<bamRecord>::begin(fp, hdr, idx, region); }
+                    auto end()   { return htsReader<bamRecord>::end(fp, hdr, idx, region); }
+            };
+
+            static inline auto range(htsFile& fp, const bamHeader& hdr) { return bam_range_s(fp, hdr); }
+            static inline auto range(htsFile& fp, const bamHeader& hdr, htsIndex& idx, const std::string& region) { return bam_range_r(fp, hdr, idx, region); }
+
         };
     }
 }

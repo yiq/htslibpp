@@ -114,6 +114,7 @@ namespace YiCppLib {
             public:
                 iterator(htsFile& fp): fp(fp), iterator(fp, nullptr) {}
                 iterator(htsFile& fp, RecT rec): fp(fp), rec(std::move(rec)) {}
+
                 RecT& operator*() { return rec; }
 
                 virtual iterator& operator++()    { if(rec.get() != nullptr) advance(); return *this; }

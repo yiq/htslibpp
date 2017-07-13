@@ -23,6 +23,16 @@ TEST_F(BamRecord, CanIterateRecordsSequencially) {
     ASSERT_EQ(read_count, 45256);
 }
 
+TEST_F(BamRecord, CanCountRecords) {
+    auto header = htsHeader<bamHeader>::read(htsFileHandler);
+
+    auto read_count = std::distance(
+            htsReader<bamRecord>::begin(htsFileHandler, header),
+            htsReader<bamRecord>::end(htsFileHandler, header));
+
+    ASSERT_EQ(read_count, 45256);
+}
+
 TEST_F(BamRecord, CanIterateRecordUsingRangeExpression) {
     size_t read_count = 0;
     auto header = htsHeader<bamHeader>::read(htsFileHandler);
@@ -32,7 +42,7 @@ TEST_F(BamRecord, CanIterateRecordUsingRangeExpression) {
     ASSERT_EQ(read_count, 45256);
 }
 
-TEST_F(BamRecord, CanIterateRecordsUsingRangeIterator) {
+TEST_F(BamRecord, CanIterateRegionSequencially) {
     size_t read_count = 0;
     auto header = htsHeader<bamHeader>::read(htsFileHandler);
     auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
@@ -42,6 +52,27 @@ TEST_F(BamRecord, CanIterateRecordsUsingRangeIterator) {
             htsReader<bamRecord>::begin(htsFileHandler, header, index, region),
             htsReader<bamRecord>::end(htsFileHandler, header, index, region),
             [&read_count](const auto& p) { read_count++; });
+
+    ASSERT_EQ(read_count, 27112);
+}
+
+//TEST_F(BamRecord, CanCountRecordsInRegion) {
+//    auto header = htsHeader<bamHeader>::read(htsFileHandler);
+//    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
+//    const std::string region = "13:32900000-32950000";
+//    auto read_count = std::distance(
+//            htsReader<bamRecord>::begin(htsFileHandler, header, index, region),
+//            htsReader<bamRecord>::end(htsFileHandler, header, index, region));
+//    ASSERT_EQ(read_count, 27112);
+//}
+
+TEST_F(BamRecord, CanIterateRegionUsingRangeExpression) {
+    size_t read_count = 0;
+    auto header = htsHeader<bamHeader>::read(htsFileHandler);
+    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
+    const std::string region = "13:32900000-32950000";
+
+    for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
 
     ASSERT_EQ(read_count, 27112);
 }
