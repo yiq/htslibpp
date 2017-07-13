@@ -3,10 +3,10 @@ HTSLIB_PREFIX ?= /opt/lib/htslib/1.4.1
 
 CXX=g++
 CPPFLAGS=-I$(GOOGLETEST_DIR)/include -I$(HTSLIB_PREFIX)/include
-CXXFLAGS=-std=c++14
+CXXFLAGS=-std=c++14 -pthread
 #LDFLAGS=-L$(HTSLIB_PREFIX)/lib -Wl,-rpath,$(HTSLIB_PREFIX)/lib
 #LDADDS=-lhts
-LDADDS=-lbz2 -lcurl -lz -llzma
+LDADDS=-lbz2 -lcurl -lcrypto -lz -llzma
 LIBS=$(GOOGLETEST_DIR)/lib/libgmock.a $(HTSLIB_PREFIX)/lib/libhts.a
 
 SOURCES = *.cpp
