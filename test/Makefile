@@ -9,6 +9,7 @@ ifdef GMOCK_STATIC
 	LIBS=$(GOOGLETEST_DIR)/lib/libgmock.a $(HTSLIB_PREFIX)/lib/libhts.a
 	LDADDS=-lbz2 -lcurl -lcrypto -lz -llzma
 else
+	LDFLAGS=-L$(GOOGLETEST_DIR)/lib
 	LIBS=$(HTSLIB_PREFIX)/lib/libhts.a
 	LDADDS=-lgmock -lbz2 -lcurl -lcrypto -lz -llzma
 endif
