@@ -96,7 +96,7 @@ namespace YiCppLib {
                 if(retVal <= 0) rec.reset(nullptr);
             }
 
-            // sequencial iterator
+            // base iterator
             using bam_iterator_base = YiCppLib::HTSLibpp::iterator<bamRecord>;
 
             struct iterator : public bam_iterator_base {
@@ -106,8 +106,8 @@ namespace YiCppLib {
 
                 public:
                     iterator(htsFile& fp, const bamHeader& hdr) : iterator(fp, hdr, bamRecord{bam_init1()}) { }
-                    iterator(htsFile& fp, const bamHeader& hdr, bamRecord rec) : bam_iterator_base(fp, std::move(rec)), hdr(hdr) { advance(); }
-                    iterator(const iterator& other): bam_iterator_base(other.fp, nullptr), hdr(other.hdr) { if(other.rec.get() != nullptr) rec.reset(bam_dup1(other.rec.get())); }
+                    iterator(htsFile& fp, const bamHeader& hdr, bamRecord&& rec) : bam_iterator_base(fp, std::move(rec)), hdr(hdr) { advance(); }
+                    iterator(const iterator& other): bam_iterator_base(other.fp), hdr(other.hdr) { if(other.rec.get() != nullptr) rec.reset(bam_dup1(other.rec.get())); }
             };
 
             // range iterator
@@ -117,20 +117,18 @@ namespace YiCppLib {
                     virtual void advance() { if(rec.get() != nullptr) read(fp, sam_iter, rec); }
 
                 public:
-                    iterator_r(htsFile& fp, htsIterator iter): iterator_r(fp, std::move(iter), bamRecord{bam_init1()}) { }
-                    iterator_r(htsFile& fp, htsIterator iter, bamRecord rec): bam_iterator_base(fp, std::move(rec)), sam_iter(std::move(iter)) { advance(); }
+                    iterator_r(htsFile& fp, htsIterator&& iter): iterator_r(fp, std::move(iter), bamRecord{bam_init1()}) { }
+                    iterator_r(htsFile& fp, htsIterator&& iter, bamRecord&& rec): bam_iterator_base(fp, std::move(rec)), sam_iter(std::move(iter)) { advance(); }
             };
 
             static auto begin(htsFile& fp, const bamHeader& hdr) { return iterator{fp, hdr}; }
             static auto end(htsFile& fp, const bamHeader& hdr) { return iterator{fp, hdr, nullptr}; }
 
             static auto begin(htsFile& fp, const bamHeader& hdr, htsIndex& idx, std::string range_s) { 
-                htsIterator sam_iter{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())};
-                return iterator_r(fp, std::move(sam_iter));
+                return iterator_r(fp, htsIterator{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())});
             }
             static auto end(htsFile& fp, const bamHeader& hdr, htsIndex& idx, std::string range_s) { 
-                htsIterator sam_iter{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())};
-                return iterator_r(fp, std::move(sam_iter), nullptr);
+                return iterator_r(fp, htsIterator{sam_itr_querys(idx.get(), hdr.get(), range_s.c_str())}, nullptr);
             }
 
             // --- RANGE EXPRESSIONS --- //

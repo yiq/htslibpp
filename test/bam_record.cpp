@@ -1,4 +1,5 @@
 #include <gmock/gmock.h>
+#include "htslib/hfile.h"
 #include "../htslibpp.h"
 #include "../htslibpp_alignment.h"
 
@@ -52,19 +53,9 @@ TEST_F(BamRecord, CanIterateRegionSequencially) {
             htsReader<bamRecord>::begin(htsFileHandler, header, index, region),
             htsReader<bamRecord>::end(htsFileHandler, header, index, region),
             [&read_count](const auto& p) { read_count++; });
-
+    
     ASSERT_EQ(read_count, 27112);
 }
-
-//TEST_F(BamRecord, CanCountRecordsInRegion) {
-//    auto header = htsHeader<bamHeader>::read(htsFileHandler);
-//    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
-//    const std::string region = "13:32900000-32950000";
-//    auto read_count = std::distance(
-//            htsReader<bamRecord>::begin(htsFileHandler, header, index, region),
-//            htsReader<bamRecord>::end(htsFileHandler, header, index, region));
-//    ASSERT_EQ(read_count, 27112);
-//}
 
 TEST_F(BamRecord, CanIterateRegionUsingRangeExpression) {
     size_t read_count = 0;
@@ -75,6 +66,19 @@ TEST_F(BamRecord, CanIterateRegionUsingRangeExpression) {
     for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
 
     ASSERT_EQ(read_count, 27112);
+}
+
+TEST_F(BamRecord, RegionIteratorCanPerformMultiplePass) {
+    size_t read_count = 0;
+    auto header = htsHeader<bamHeader>::read(htsFileHandler);
+    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
+    const std::string region = "13:32900000-32950000";
+
+    for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
+    ASSERT_EQ(read_count, 27112);
+
+    for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
+    ASSERT_EQ(read_count, 27112*2);
 }
 
 TEST_F(BamRecord, CanGetQueryName) {
