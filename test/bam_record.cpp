@@ -9,7 +9,9 @@ using namespace YiCppLib::HTSLibpp;
 
 class BamRecord : public testing::Test {
     public:
-        YiCppLib::HTSLibpp::htsFile htsFileHandler = htsOpen("datasets/brca2.na12878.bam", "r");
+        const std::string testFile = "datasets/brca2.na12878.bam";
+        const std::string brca2Region = "13:32900000-32950000";
+        YiCppLib::HTSLibpp::htsFile htsFileHandler = htsOpen(testFile, "r");
 };
 
 TEST_F(BamRecord, CanIterateRecordsSequencially) {
@@ -46,8 +48,8 @@ TEST_F(BamRecord, CanIterateRecordUsingRangeExpression) {
 TEST_F(BamRecord, CanIterateRegionSequencially) {
     size_t read_count = 0;
     auto header = htsHeader<bamHeader>::read(htsFileHandler);
-    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
-    const std::string region = "13:32900000-32950000";
+    auto index  = htsIndexOpen(testFile, testFile + ".bai");
+    const std::string region = brca2Region;
 
     std::for_each(
             htsReader<bamRecord>::begin(htsFileHandler, header, index, region),
@@ -60,8 +62,8 @@ TEST_F(BamRecord, CanIterateRegionSequencially) {
 TEST_F(BamRecord, CanIterateRegionUsingRangeExpression) {
     size_t read_count = 0;
     auto header = htsHeader<bamHeader>::read(htsFileHandler);
-    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
-    const std::string region = "13:32900000-32950000";
+    auto index  = htsIndexOpen(testFile, testFile + ".bai");
+    const std::string region = brca2Region;
 
     for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
 
@@ -71,8 +73,8 @@ TEST_F(BamRecord, CanIterateRegionUsingRangeExpression) {
 TEST_F(BamRecord, RegionIteratorCanPerformMultiplePass) {
     size_t read_count = 0;
     auto header = htsHeader<bamHeader>::read(htsFileHandler);
-    auto index  = htsIndexOpen("datasets/brca2.na12878.bam", "datasets/brca2.na12878.bam.bai");
-    const std::string region = "13:32900000-32950000";
+    auto index  = htsIndexOpen(testFile, testFile + ".bai");
+    const std::string region = brca2Region;
 
     for(auto &r : htsReader<bamRecord>::range(htsFileHandler, header, index, region)) read_count++;
     ASSERT_EQ(read_count, 27112);

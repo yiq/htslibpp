@@ -113,22 +113,15 @@ namespace YiCppLib {
                 return rec;
             }
 
-            struct iterator : public std::iterator<std::input_iterator_tag, bcfRecord> {
+            using bcf_iterator_base = YiCppLib::HTSLibpp::iterator<bcfRecord>;
+            struct iterator : public bcf_iterator_base {
                 protected:
-                    htsFile& fp;
                     const bcfHeader& hdr;
-                    bcfRecord rec;
+                    virtual void advance() { if(rec.get() != nullptr) read(fp, hdr, rec); }
 
                 public:
-                    iterator(htsFile& fp, const bcfHeader& hdr) : fp(fp), hdr(hdr), rec(bcf_init()) {}
-                    iterator(htsFile& fp, const bcfHeader& hdr, bcfRecord rec): fp(fp), hdr(hdr), rec(std::move(rec)) {}
-                    virtual bcfRecord& operator*() { return rec; }
-
-                    iterator& operator++()               { read(fp, hdr, rec); return *this; }
-                    void operator++(int)                 { ++(*this); }
-
-                    bool operator==(const iterator& rhs) { return rec.get() == nullptr && rhs.rec.get() == nullptr ; }
-                    bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+                    iterator(htsFile& fp, const bcfHeader& hdr) : iterator(fp, hdr, bcfRecord{bcf_init()})  {}
+                    iterator(htsFile& fp, const bcfHeader& hdr, bcfRecord&& rec): bcf_iterator_base(fp, std::move(rec)), hdr(hdr) { advance(); }
             };
 
             static iterator begin(htsFile& fp, const bcfHeader& hdr) { return iterator{fp, hdr}; }
